@@ -1316,6 +1316,13 @@ int am33xx_cpsw_init(enum am33xx_cpsw_mac_mode mode, unsigned char *phy_id0,
 		am33xx_cpsw_slaves[0].phy_if = PHY_INTERFACE_MODE_RGMII;
 		am33xx_cpsw_slaves[1].phy_if = PHY_INTERFACE_MODE_RGMII;
 		break;
+	case AM33XX_CPSW_MODE_VAR:
+		gmii_sel = AM33XX_VAR_MODE_EN;
+		break;
+    case AM33XX_CPSW_MODE_VAR2:
+		 gmii_sel = AM33XX_VAR_MODE_EN2;
+		break;
+
 	default:
 		return -EINVAL;
 	}

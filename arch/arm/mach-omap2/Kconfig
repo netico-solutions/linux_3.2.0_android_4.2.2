@@ -350,6 +350,11 @@ config MACH_AM335XEVM_WILINK8
 	depends on MACH_AM335XEVM
 	default n
 
+config MACH_VAR_SOM_AM33
+	bool "Variscite VAR-SOM-AM33 Module"
+	depends on SOC_OMAPAM33XX
+	default y
+
 config MACH_AM335XIAEVM
 	bool "AM335X IA Evaluation Module"
 	depends on SOC_OMAPAM33XX

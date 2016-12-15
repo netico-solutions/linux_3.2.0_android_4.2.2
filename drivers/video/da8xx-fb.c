@@ -373,6 +373,34 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.pxl_clk = 96000000,
 		.invert_pxl_clk = 0,
 	},
+	/* Variscite Panel */
+	[10] = {
+		.name = "VAR-WVGA",
+		.width = 800,
+		.height = 480,
+		.hfp = 29,
+		.hbp = 17,
+		.hsw = 28,
+		.vfp = 13,
+		.vbp = 20,
+		.vsw = 3,
+		.pxl_clk = 28000000,
+		.invert_pxl_clk = 0,
+	},
+	/* Variscite CTW6120 Panel */
+	[11] = {
+		.name = "VAR-WVGA-CTW",
+		.width = 800,
+		.height = 480,
+		.hfp = 129,
+		.hbp = 28,
+		.hsw = 28,
+		.vfp = 32,
+		.vbp = 20,
+		.vsw = 3,
+		.pxl_clk = 33000000,
+		.invert_pxl_clk = 0,
+	},
 };
 
 /* Enable the Raster Engine of the LCD Controller */

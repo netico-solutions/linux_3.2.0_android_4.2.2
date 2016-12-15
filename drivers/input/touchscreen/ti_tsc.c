@@ -27,6 +27,7 @@
 #include <linux/input/ti_tsc.h>
 #include <linux/delay.h>
 #include <linux/mfd/ti_tscadc.h>
+#include <asm/mach-types.h>
 
 #define MAX_12BIT                       ((1 << 12) - 1)
 
@@ -72,7 +73,13 @@ static void tsc_step_config(struct tscadc *ts_dev)
 
 	switch (ts_dev->wires) {
 	case 4:
-		stepconfigx |= TSCADC_STEPCONFIG_INP_AN2 |
+#ifdef CONFIG_MACH_VAR_SOM_AM33
+		if (machine_is_var_som_am33())
+			stepconfigx |= TSCADC_STEPCONFIG_INP_AN1 |
+				TSCADC_STEPCONFIG_YPN;
+		else
+#endif
+			stepconfigx |= TSCADC_STEPCONFIG_INP_AN2 |
 				TSCADC_STEPCONFIG_XNN;
 		break;
 	case 5:
@@ -97,7 +104,12 @@ static void tsc_step_config(struct tscadc *ts_dev)
 			TSCADC_STEPCONFIG_INM_ADCREFM;
 	switch (ts_dev->wires) {
 	case 4:
-		stepconfigy |= TSCADC_STEPCONFIG_YPP;
+#ifdef CONFIG_MACH_VAR_SOM_AM33
+		if (machine_is_var_som_am33())
+			stepconfigy |= TSCADC_STEPCONFIG_XNP;
+		else
+#endif
+			stepconfigy |= TSCADC_STEPCONFIG_YPP;
 		break;
 	case 5:
 		stepconfigy |= TSCADC_STEPCONFIG_XPP |
@@ -116,8 +128,15 @@ static void tsc_step_config(struct tscadc *ts_dev)
 
 	chargeconfig = TSCADC_STEPCONFIG_XPP | TSCADC_STEPCONFIG_YNN |
 			TSCADC_STEPCHARGE_RFP_XPUL |
-			TSCADC_STEPCHARGE_RFM_XNUR |
-			TSCADC_STEPCHARGE_INM_AN1 | TSCADC_STEPCHARGE_INP_AN1;
+			TSCADC_STEPCHARGE_RFM_XNUR;
+
+#ifdef CONFIG_MACH_VAR_SOM_AM33
+	if (machine_is_var_som_am33())
+		chargeconfig |= TSCADC_STEPCHARGE_INM_AN2 | TSCADC_STEPCHARGE_INP_AN2;
+	else
+		chargeconfig |= TSCADC_STEPCHARGE_INM_AN1 | TSCADC_STEPCHARGE_INP_AN1;
+#endif
+
 	tscadc_writel(ts_dev, TSCADC_REG_CHARGECONFIG, chargeconfig);
 	tscadc_writel(ts_dev, TSCADC_REG_CHARGEDELAY, TSCADC_CHARGEDLY_OPENDLY);
 

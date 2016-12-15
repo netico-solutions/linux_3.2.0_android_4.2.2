@@ -24,6 +24,7 @@
 #include <linux/slab.h>
 #include <linux/gpio.h>
 #include <linux/mfd/tps65910.h>
+#include <asm/mach-types.h>
 
 #define TPS65910_SUPPLY_STATE_ENABLED	0x1
 
@@ -880,6 +881,13 @@ static __devinit int tps65910_probe(struct platform_device *pdev)
 	/* Give control of all register to control port */
 	tps65910_set_bits(pmic->mfd, TPS65910_DEVCTRL,
 				DEVCTRL_SR_CTL_I2C_SEL_MASK);
+#ifdef CONFIG_MACH_VAR_SOM_AM33
+	if (machine_is_var_som_am33()) {
+		/* 32-kHz clock source is the crystal oscillator */
+		tps65910_clear_bits(pmic->mfd, TPS65910_DEVCTRL,
+				DEVCTRL_CK32K_CTRL_MASK);
+	}
+#endif
 
 	switch(tps65910_chip_id(tps65910)) {
 	case TPS65910:

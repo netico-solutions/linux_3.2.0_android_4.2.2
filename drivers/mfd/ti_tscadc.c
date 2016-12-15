@@ -24,6 +24,7 @@
 #include <linux/mfd/ti_tscadc.h>
 #include <linux/input/ti_tsc.h>
 #include <linux/platform_data/ti_adc.h>
+#include <asm/mach-types.h>
 
 static unsigned int tscadc_readl(struct ti_tscadc_dev *tsadc, unsigned int reg)
 {
@@ -41,7 +42,14 @@ static void tscadc_idle_config(struct ti_tscadc_dev *config)
 	unsigned int idleconfig;
 
 	idleconfig = TSCADC_STEPCONFIG_YNN | TSCADC_STEPCONFIG_INM_ADCREFM |
-			TSCADC_STEPCONFIG_INP_ADCREFM | TSCADC_STEPCONFIG_YPN;
+			TSCADC_STEPCONFIG_INP_ADCREFM;
+
+#ifdef CONFIG_MACH_VAR_SOM_AM33
+	if (machine_is_var_som_am33())
+		idleconfig |= TSCADC_STEPCONFIG_XNN;
+	else
+#endif
+		idleconfig |= TSCADC_STEPCONFIG_YPN;
 
 	tscadc_writel(config, TSCADC_REG_IDLECONFIG, idleconfig);
 }
