@@ -258,12 +258,6 @@ static struct pinmux_config gpio_backlight_pin_mux[] = {
 };
 #endif
 
-static struct pinmux_config d_can0_pin_mux[] = {
-	{"mii1_txd2.d_can0_rx", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLUP},
-	{"mii1_txd3.d_can0_tx", OMAP_MUX_MODE1 | AM33XX_PULL_ENBL},
-	{NULL, 0},
-};
-
 /* Module pin mux for LCDC */
 static struct pinmux_config lcdc_pin_mux[] = {
 	{"lcd_data0.lcd_data0",		OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT
