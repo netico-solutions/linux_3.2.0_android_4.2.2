@@ -133,33 +133,10 @@ struct da8xx_lcdc_platform_data VAR_LCD_CTW_pdata = {
 	.type			= "VAR-WVGA-CTW",
 };
 
-/* TSc controller */
-static struct tsc_data am335x_touchscreen_data  = {
-	.wires  = 4,
-	.x_plate_resistance = 200,
-	.steps_to_configure = 5,
+
 #ifdef CONFIG_ANDROID
-	.x = {
-		.min = 0x76,
-		.max = 0xF86,
-		.inverted = 0,
-	},
-	.y = {
-		.min = 0x127,
-		.max = 0xF46,
-		.inverted = 0,
-	},
-#endif /* CONFIG_ANDROID */
-};
-
-static struct adc_data am335x_adc_data = {
-	.adc_channels = 4,
-};
-
-static struct mfd_tscadc_board tscadc = {
-	.tsc_init = &am335x_touchscreen_data,
-	.adc_init = &am335x_adc_data,
-};
+static void sgx_init(void);
+#endif
 
 /* Audio */
 static u8 am335x_iis_serializer_direction1[] = {
@@ -597,15 +574,6 @@ static void lcdc_init(void)
 		pr_info("Failed to register LCDC device\n");
 
 	return;
-}
-
-static void mfd_tscadc_init(void)
-{
-	int err;
-
-	err = am33xx_register_mfd_tscadc(&tscadc);
-	if (err)
-		pr_err("failed to register touchscreen device\n");
 }
 
 static void uart_init(void)
@@ -1258,7 +1226,7 @@ static void __init am33xx_cpuidle_init(void)
 }
 
 #ifdef CONFIG_ANDROID
-static void sgx_init()
+static void sgx_init(void)
 {
 	if (omap3_has_sgx()) {
 		am33xx_gpu_init();
@@ -1286,7 +1254,6 @@ static void __init var_am335x_som_init(void)
 	wl12xx_init();
 	som_nand_init();
 	lcdc_init();
-	mfd_tscadc_init();
 	mcasp0_init();
 	rmii1_init();
 	rgmii2_init();
