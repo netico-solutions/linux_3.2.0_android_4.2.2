@@ -563,12 +563,6 @@ static int __init backlight_init(void)
 late_initcall(backlight_init);
 #endif /* CONFIG_ANDROID */
 
-static void d_can_init(void)
-{
-	setup_pin_mux(d_can0_pin_mux);
-	am33xx_d_can_init(0);
-}
-
 static int __init conf_disp_pll(int rate)
 {
 	struct clk *disp_pll;
@@ -1309,7 +1303,6 @@ static void __init var_am335x_som_init(void)
 	sgx_init();
 #endif	
 	usb_musb_init(&musb_board_data);
-	d_can_init();
 
 	/* Create an alias for icss clock */
 	if (clk_add_alias("pruss", NULL, "pruss_uart_gclk", NULL))
