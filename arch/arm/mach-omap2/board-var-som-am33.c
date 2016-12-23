@@ -1090,7 +1090,7 @@ static struct edt_ft5x06_platform_data  am335x_ft5x06_info =
     .reset_pin = GPIO_TO_PIN(2, 0)
 };
 
-#define VAR_SOM_TSC_CTW_IRQ_GPIO 	GPIO_TO_PIN(0, 3)
+#define VAR_SOM_TSC_CTW_IRQ_GPIO 	GPIO_TO_PIN(1, 17)
 
 static struct i2c_board_info __initdata var_som_i2c1_boardinfo[] = {
 	{
@@ -1102,7 +1102,9 @@ static struct i2c_board_info __initdata var_som_i2c1_boardinfo[] = {
 	},
     {
         I2C_BOARD_INFO("edt-ft5x06", 0x38),
-        .platform_data = &am335x_ft5x06_info
+        .platform_data = &am335x_ft5x06_info,
+        .flags = I2C_CLIENT_WAKE,
+        .irq = OMAP_GPIO_IRQ(VAR_SOM_TSC_CTW_IRQ_GPIO),
     }
 };
 
