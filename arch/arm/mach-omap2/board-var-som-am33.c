@@ -223,17 +223,10 @@ static struct pinmux_config uart3_pin_mux[] = {
 	{NULL, 0},
 };
 
-#ifdef CONFIG_ANDROID
-static struct pinmux_config haptics_pin_mux[] = {
-	{"spi0_sclk.ehrpwm0A", OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT},
-	{NULL, 0},
-};
-#else
 static struct pinmux_config gpio_backlight_pin_mux[] = {
 	{"spi0_sclk.gpio0_2", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
 	{NULL, 0},
 };
-#endif
 
 /* Module pin mux for LCDC */
 static struct pinmux_config lcdc_pin_mux[] = {
@@ -439,51 +432,6 @@ static struct pinmux_config wl12xx_pin_mux_var_som[] = {
 	{NULL, 0},
 };
 
-#ifdef CONFIG_ANDROID
-/* 
- * PWM backlight 
- */
-static struct platform_pwm_backlight_data am335x_backlight_data = {
-	.pwm_id         = "ehrpwm.0",
-	.ch             = 0,
-	.max_brightness = 100,
-	.dft_brightness = 100,
-	.pwm_period_ns  = 4000000,
-};
-
-static struct platform_device am335x_backlight = {
-	.name           = "pwm-backlight",
-	.id             = -1,
-	.dev		= {
-		.platform_data = &am335x_backlight_data,
-	},
-};
-
-static struct pwmss_platform_data pwm_pdata = {
-	.version = PWM_VERSION_1,
-};
-
-/* setup haptics */
-#define HAPTICS_MAX_FREQ 250
-static void haptics_init(void)
-{
-	setup_pin_mux(haptics_pin_mux);
-	pwm_pdata.chan_attrib[0].max_freq = HAPTICS_MAX_FREQ;
-	am33xx_register_ehrpwm(0, &pwm_pdata);
-}
-
-static int __init pwm_backlight_init(void)
-{
-	if (var_lcd_index == VAR_LCD_CTW6120)
-		am335x_backlight_data.lth_brightness = 59;
-
-	platform_device_register(&am335x_backlight);
-
-	return 0;
-}
-late_initcall(pwm_backlight_init);
-#else
-
 #define VAR_SOM_BACKLIGHT_GPIO GPIO_TO_PIN(0, 2)
 static int __init backlight_init(void)
 {
@@ -501,7 +449,6 @@ static int __init backlight_init(void)
 	return 0;
 }
 late_initcall(backlight_init);
-#endif /* CONFIG_ANDROID */
 
 static int __init conf_disp_pll(int rate)
 {
@@ -1181,10 +1128,7 @@ static void __init var_am335x_som_init(void)
 	rmii1_init();
 	ethernet_init();
 	i2c1_init();
-#ifdef CONFIG_ANDROID
-	haptics_init(); /* use by PWM backlight */
 	sgx_init();
-#endif	
 	usb_musb_init(&musb_board_data);
 
 	/* Create an alias for icss clock */
