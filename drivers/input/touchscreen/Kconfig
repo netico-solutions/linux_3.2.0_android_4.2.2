@@ -768,4 +768,16 @@ config TOUCHSCREEN_TPS6507X
 	  To compile this driver as a module, choose M here: the
 	  module will be called tps6507x_ts.
 
+config TOUCHSCREEN_FT5X06
+    tristate "FT5x06 based touchscreen"
+    depends on I2C
+    help
+	  Say Y here if you have a FT5x06 based touchscreen
+	  controller.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called ft5x06.
+
 endif
