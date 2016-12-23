@@ -311,37 +311,6 @@ static struct pinmux_config rmii1_pin_mux[] = {
 	{NULL, 0},
 };
 
-/* Module pin mux for rgmii2 */
-static struct pinmux_config rgmii2_pin_mux[] = {
-	{"gpmc_a0.rgmii2_tctl", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
-	{"gpmc_a1.rgmii2_rctl", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
-	{"gpmc_a2.rgmii2_td3", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
-	{"gpmc_a3.rgmii2_td2", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
-	{"gpmc_a4.rgmii2_td1", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
-	{"gpmc_a5.rgmii2_td0", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
-	{"gpmc_a6.rgmii2_tclk", OMAP_MUX_MODE2 | AM33XX_PIN_OUTPUT},
-	{"gpmc_a7.rgmii2_rclk", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
-	{"gpmc_a8.rgmii2_rd3", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
-	{"gpmc_a9.rgmii2_rd2", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
-	{"gpmc_a10.rgmii2_rd1", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
-	{"gpmc_a11.rgmii2_rd0", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLDOWN},
-	{"mii1_col.rmii2_refclk", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLDOWN},
-	{"mdio_data.mdio_data", OMAP_MUX_MODE0 | AM33XX_PIN_INPUT_PULLUP},
-	{"mdio_clk.mdio_clk", OMAP_MUX_MODE0 | AM33XX_PIN_OUTPUT_PULLUP},
-	{NULL, 0},
-};
-
-/* Module pin mux for rgmii2 strapping phase  */
-static struct pinmux_config rgmii2_strapping_pin_mux[] = {
-	{"gpmc_a7.gpio1_23", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT_PULLUP},
-	{"gpmc_a8.gpio1_24", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT_PULLUP},
-	{"gpmc_a9.gpio1_25", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT_PULLUP},
-	{"gpmc_a10.gpio1_26", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT_PULLUP},
-	{"gpmc_a11.gpio1_27", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT_PULLUP},
-	{"gpmc_a1.gpio1_17", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT_PULLUP},
-	{NULL, 0},
-};
-
 /* I2C1 */
 static struct pinmux_config i2c1_pin_mux[] = {
 	{"spi0_d1.i2c1_sda",    OMAP_MUX_MODE2 | AM33XX_SLEWCTRL_SLOW |
@@ -607,52 +576,6 @@ static void rmii1_init(void)
 	gpio_export(VAR_SOM_GMII1_RST_GPIO, 0);
 
 	setup_pin_mux(rmii1_pin_mux);
-
-	return;
-}
-
-#define VAR_SOM_RGMII2_RST_GPIO   GPIO_TO_PIN(3, 10)
-
-static struct gpio rgmii_strapping_gpios[] __initdata = {
-	{GPIO_TO_PIN(1, 23), GPIOF_OUT_INIT_HIGH,	"rgmii_phyaddr2"},
-	{GPIO_TO_PIN(1, 27), GPIOF_OUT_INIT_HIGH,	"rgmii_mode0"},
-	{GPIO_TO_PIN(1, 26), GPIOF_OUT_INIT_HIGH,	"rgmii_mode1"},
-	{GPIO_TO_PIN(1, 25), GPIOF_OUT_INIT_HIGH,	"rgmii_mode2"},
-	{GPIO_TO_PIN(1, 24), GPIOF_OUT_INIT_HIGH,	"rgmii_mode3"},
-	{GPIO_TO_PIN(1, 17), GPIOF_OUT_INIT_HIGH,	"rgmii_clk125_ena"},
-};
-
-static void rgmii2_init(void)
-{
-	int status;
-
-	setup_pin_mux(rgmii2_strapping_pin_mux);
-
-	omap_mux_init_gpio(VAR_SOM_RGMII2_RST_GPIO, OMAP_PIN_OUTPUT);
-	status = gpio_request_one(VAR_SOM_RGMII2_RST_GPIO,
-		GPIOF_OUT_INIT_HIGH, "rgmii2_rst");
-	if (status) {
-		pr_err("Error requesting rgmii2 reset gpio: %d\n", status);
-	}
-
-	/* Setup RGMII strapping options */
-	status = gpio_request_array(rgmii_strapping_gpios,
-				 ARRAY_SIZE(rgmii_strapping_gpios));
-	if (status)
-		pr_err("Error requesting rgmii2 strapping gpios: %d\n", status);
-
-	/* Reset RGMII2 */
-	mdelay(10);
-	gpio_set_value(VAR_SOM_RGMII2_RST_GPIO, 0);
-	mdelay(10);
-	gpio_set_value(VAR_SOM_RGMII2_RST_GPIO, 1);
-
-	gpio_free_array(rgmii_strapping_gpios,
-				ARRAY_SIZE(rgmii_strapping_gpios));
-
-	gpio_export(VAR_SOM_RGMII2_RST_GPIO, 0);
-
-	setup_pin_mux(rgmii2_pin_mux);
 
 	return;
 }
@@ -1256,7 +1179,6 @@ static void __init var_am335x_som_init(void)
 	lcdc_init();
 	mcasp0_init();
 	rmii1_init();
-	rgmii2_init();
 	ethernet_init();
 	i2c1_init();
 #ifdef CONFIG_ANDROID
