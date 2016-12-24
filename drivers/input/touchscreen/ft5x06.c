@@ -123,7 +123,7 @@ static bool ft5x06_ts_check_crc(struct ft5x06_ts_data *tsdata,
 		crc ^= buf[i];
 
 	if (crc != buf[buflen-1]) {
-		dev_err_ratelimited(&tsdata->client->dev,
+		dev_err(&tsdata->client->dev,
 				    "crc error: 0x%02x expected, got 0x%02x\n",
 				    crc, buf[buflen-1]);
 		return false;
@@ -147,13 +147,13 @@ static irqreturn_t ft5x06_ts_isr(int irq, void *dev_id)
 					sizeof(cmd), &cmd,
 					sizeof(rdbuf), rdbuf);
 	if (error) {
-		dev_err_ratelimited(dev, "Unable to fetch data, error: %d\n",
+		dev_err(dev, "Unable to fetch data, error: %d\n",
 				    error);
 		goto out;
 	}
 
 	if (rdbuf[0] != 0xaa || rdbuf[1] != 0xaa || rdbuf[2] != 26) {
-		dev_err_ratelimited(dev, "Unexpected header: %02x%02x%02x!\n",
+		dev_err(dev, "Unexpected header: %02x%02x%02x!\n",
 				    rdbuf[0], rdbuf[1], rdbuf[2]);
 		goto out;
 	}
@@ -773,7 +773,7 @@ static int ft5x06_ts_probe(struct i2c_client *client,
 			     0, tsdata->num_x * 64 - 1, 0, 0);
 	input_set_abs_params(input, ABS_MT_POSITION_Y,
 			     0, tsdata->num_y * 64 - 1, 0, 0);
-	error = input_mt_init_slots(input, MAX_SUPPORT_POINTS, 0);
+	error = input_mt_init_slots(input, MAX_SUPPORT_POINTS);
 	if (error) {
 		dev_err(&client->dev, "Unable to init MT slots.\n");
 		goto err_free_mem;
@@ -885,7 +885,17 @@ static struct i2c_driver ft5x06_ts_driver = {
 	.remove   = ft5x06_ts_remove,
 };
 
-module_i2c_driver(ft5x06_ts_driver);
+static int __init ft5x06_ts_driver_init(void)
+{
+    return i2c_add_driver(&ft5x06_ts_driver);
+}
+module_init(ft5x06_ts_driver_init);
+
+static void __exit ft5x06_ts_driver_exit(void)
+{
+    i2c_del_driver(&ft5x06_ts_driver);
+}
+module_exit(ft5x06_ts_driver_exit);
 
 MODULE_AUTHOR("Simon Budig <simon.budig@kernelconcepts.de>");
 MODULE_DESCRIPTION("FT5x06 I2C Touchscreen Driver");
