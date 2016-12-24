@@ -1,5 +1,5 @@
-#ifndef _EDT_FT5X06_H
-#define _EDT_FT5X06_H
+#ifndef _FT5X06_H
+#define _FT5X06_H
 
 /*
  * Copyright (c) 2012 Simon Budig, <simon.budig@kernelconcepts.de>
@@ -9,7 +9,7 @@
  * the Free Software Foundation.
  */
 
-struct edt_ft5x06_platform_data {
+struct ft5x06_platform_data {
 	int irq_pin;
 	int reset_pin;
 
@@ -21,4 +21,4 @@ struct edt_ft5x06_platform_data {
 	u8 report_rate;
 };
 
-#endif /* _EDT_FT5X06_H */
+#endif /* _FT5X06_H */
