@@ -802,7 +802,7 @@ static int ft5x06_ts_probe(struct i2c_client *client,
 	device_init_wakeup(&client->dev, 1);
 
 	dev_dbg(&client->dev,
-		"FT5x06 initialized: IRQ pin %d, Reset pin %d.\n",
+		"Initialized: IRQ pin %d, Reset pin %d.\n",
 		pdata->irq_pin, pdata->reset_pin);
 
 	return 0;
