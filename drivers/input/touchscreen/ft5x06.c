@@ -635,7 +635,11 @@ static int ft5x06_ts_reset(struct i2c_client *client,
 		mdelay(50);
 		gpio_set_value(reset_pin, 1);
 		mdelay(100);
-	}
+	} else {
+        dev_err(&client->dev,
+            "Failed to reset device, reset_pin %d is invalid\n",
+            reset_pin);
+    }
 
 	return 0;
 }
@@ -644,27 +648,35 @@ static int ft5x06_ts_identify(struct i2c_client *client,
 					    char *model_name,
 					    char *fw_version)
 {
-	u8 rdbuf[FT5X06_NAME_LEN];
+    u8 cipher;
+    u8 firmid;
+    u8 firmver[2];
 	char *p;
 	int error;
 
-	error = ft5x06_ts_readwrite(client, 1, "\xbb",
-					FT5X06_NAME_LEN - 1, rdbuf);
+    /* Get ID_G_CIPHER : Chip Vendor ID 
+     * Newhaven FocalTech : 0x06
+     */
+	error = ft5x06_ts_readwrite(client, 1, "\xa3", 1, &cipher);
+
 	if (error)
 		return error;
 
-	/* remove last '$' end marker */
-	rdbuf[FT5X06_NAME_LEN - 1] = '\0';
-	if (rdbuf[FT5X06_NAME_LEN - 2] == '$')
-		rdbuf[FT5X06_NAME_LEN - 2] = '\0';
+    /* Get ID_G_FIRMID : Firmware ID
+     * Newhaven FocalTech : 0x30
+     */
+    error = ft5x06_ts_readwrite(client, 1, "\xa6", 1, &firmid);
 
-	/* look for Model/Version separator */
-	p = strchr(rdbuf, '*');
-	if (p)
-		*p++ = '\0';
+    if (error)
+        return error;
 
-	strlcpy(model_name, rdbuf + 1, FT5X06_NAME_LEN);
-	strlcpy(fw_version, p ? p : "", FT5X06_NAME_LEN);
+    /* Get ID_G_LIB_VERSION_H and ID_G_LIB_VERSION_L : Firmware Library Version
+     * Newhaven FocalTech: 0x30 0x01
+     */
+    error = ft5x06_ts_readwrite(client, 1, "\xa1", 1, &firmver[0]);
+
+    snprintf(model_name, FT5X06_NAME_LEN, "ft5x06.%x.%x", cipher, firmid);
+    snprintf(fw_version, FT5X06_NAME_LEN, "fwV%d.%d", firmver[0], firmver[1]);
 
 	return 0;
 }
