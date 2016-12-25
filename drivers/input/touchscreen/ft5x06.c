@@ -651,7 +651,6 @@ static int ft5x06_ts_identify(struct i2c_client *client,
     u8 cipher;
     u8 firmid;
     u8 firmver[2];
-	char *p;
 	int error;
 
     /* Get ID_G_CIPHER : Chip Vendor ID 
