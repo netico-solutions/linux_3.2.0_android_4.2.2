@@ -40,7 +40,7 @@
 #include <linux/reboot.h>
 #include <linux/pwm/pwm.h>
 #include <linux/ti_wilink_st.h>
-#include <linux/input/ti_tsc.h>
+#include <linux/input/ft5x06.h>
 #include <linux/mfd/ti_tscadc.h>
 
 #include <video/da8xx-fb.h>
@@ -70,30 +70,33 @@
 #include "devices.h"
 #include "hsmmc.h"
 
-#define VAR_LCD_UTM     0
-#define VAR_LCD_CTW6120 1
 
-/*
- * parse touch screen from bootargs; var_ts=ctw6120|reststive.
- * (default is reststive).
- */
-static int var_lcd_index = VAR_LCD_UTM;
-
-static int __init var_ts_type_setup(char *str)
-{
-	if (str && strcmp("ctw6120", str) == 0) {
-		var_lcd_index = VAR_LCD_CTW6120;
-	}
-
-	return 1;
-}
-__setup("var_ts_type=", var_ts_type_setup);
-
+/* module pin mux structure */
+struct pinmux_config {
+	const char *string_name; /* signal name format */
+	int val; /* Options for the mux register value */
+};
 
 /* Convert GPIO signal to GPIO pin number */
 #define GPIO_TO_PIN(bank, gpio) (32 * (bank) + (gpio))
 
 #define NO_OF_MAC_ADDR		3
+
+/* VAR-SOM-AM33 module specific gpios */
+#define VAR_SOM_GMII1_RST_GPIO          GPIO_TO_PIN(2, 19)
+#define VAR_SOM_REV_BIT0                GPIO_TO_PIN(2, 13)
+#define VAR_SOM_REV_BIT1                GPIO_TO_PIN(2, 22)
+#define VAR_SOM_REV_BIT2                GPIO_TO_PIN(2, 11)
+#define VAR_SOM_WLAN_PMENA_GPIO         GPIO_TO_PIN(3, 21)
+#define VAR_SOM_WLAN_IRQ_GPIO           GPIO_TO_PIN(3, 20)
+#define VAR_SOM_BT_PMENA_GPIO           GPIO_TO_PIN(3, 9)
+
+/* Board specific gpios */
+#define BOARD_LCD_BACKLIGHT_GPIO        GPIO_TO_PIN(0, 2)
+#define BOARD_FT5X06_IRQ_GPIO           GPIO_TO_PIN(1, 17)
+#define BOARD_FT5X06_RESET_GPIO         GPIO_TO_PIN(2, 0)
+
+
 static char am335x_mac_addr[NO_OF_MAC_ADDR][ETH_ALEN];
 
 /* LCD */
@@ -121,22 +124,13 @@ static struct lcd_ctrl_config lcd_cfg = {
 	.raster_order		= 0,
 };
 
-struct da8xx_lcdc_platform_data VAR_LCD_pdata = {
+struct da8xx_lcdc_platform_data newhaven_lcd_pdata = {
 	.manu_name		= "Variscite",
 	.controller_data	= &lcd_cfg,
 	.type			= "VAR-WVGA",
 };
 
-struct da8xx_lcdc_platform_data VAR_LCD_CTW_pdata = {
-	.manu_name		= "Variscite",
-	.controller_data	= &lcd_cfg,
-	.type			= "VAR-WVGA-CTW",
-};
-
-
-#ifdef CONFIG_ANDROID
 static void sgx_init(void);
-#endif
 
 /* Audio */
 static u8 am335x_iis_serializer_direction1[] = {
@@ -195,11 +189,6 @@ static struct omap_board_mux board_mux[] __initdata = {
 #define	board_mux	NULL
 #endif
 
-/* module pin mux structure */
-struct pinmux_config {
-	const char *string_name; /* signal name format */
-	int val; /* Options for the mux register value */
-};
 /* SOM revision GPIO */
 static struct pinmux_config am33_var_som_rev_pin_mux[] = {
 	{"lcd_data7.gpio2_13",	OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLDOWN},
@@ -335,77 +324,6 @@ static struct pinmux_config mmc0_pin_mux[] = {
 	{NULL, 0},
 };
 
-/*
-* @pin_mux - single module pin-mux structure which defines pin-mux
-*			details for all its pins.
-*/
-static void setup_pin_mux(struct pinmux_config *pin_mux)
-{
-	int i;
-
-	for (i = 0; pin_mux->string_name != NULL; pin_mux++)
-		omap_mux_init_signal(pin_mux->string_name, pin_mux->val);
-}
-
-#define AM33_VAR_SOM_REV_BIT0_GPIO GPIO_TO_PIN(2, 13)
-#define AM33_VAR_SOM_REV_BIT1_GPIO GPIO_TO_PIN(2, 22)
-#define AM33_VAR_SOM_REV_BIT2_GPIO GPIO_TO_PIN(2, 11)
-
-static struct gpio som_rev_gpios[] __initdata = {
-	{AM33_VAR_SOM_REV_BIT0_GPIO, GPIOF_IN,	"som_rev_bit_0"},
-	{AM33_VAR_SOM_REV_BIT1_GPIO, GPIOF_IN,	"som_rev_bit_1"},
-	{AM33_VAR_SOM_REV_BIT2_GPIO, GPIOF_IN,	"som_rev_bit_2"},
-
-};
-
-int get_var_am33_som_rev(void)
-{
-	static int som_rev = -1;
-	int subversion;
-
-	if (som_rev == (-1)) {
-		int status;
-
-		setup_pin_mux(am33_var_som_rev_pin_mux);
-
-		status = gpio_request_array(som_rev_gpios,
-				ARRAY_SIZE(som_rev_gpios));
-		if (status) {
-			pr_err("Error requesting som rev gpio: %d\n", status);
-		}
-		subversion = gpio_get_value(AM33_VAR_SOM_REV_BIT2_GPIO) ? 0 : 1;
-		som_rev = (gpio_get_value(AM33_VAR_SOM_REV_BIT0_GPIO) |
-				(gpio_get_value(AM33_VAR_SOM_REV_BIT1_GPIO) << 1)) +
-			subversion;
-
-		gpio_free_array(som_rev_gpios,
-				ARRAY_SIZE(som_rev_gpios));
-
-	}
-
-	return som_rev;
-}
-
-const char *get_var_am33_som_rev_str(void)
-{
-	static char som_rev_str[32];
-
-	sprintf(som_rev_str, "1.%d", get_var_am33_som_rev());
-
-	return som_rev_str;
-}
-
-#define VAR_SOM_WLAN_PMENA_GPIO           GPIO_TO_PIN(3, 21)
-#define VAR_SOM_WLAN_IRQ_GPIO             GPIO_TO_PIN(3, 20)
-#define VAR_SOM_BT_PMENA_GPIO             GPIO_TO_PIN(3, 9)
-
-static struct wl12xx_platform_data var_som_am33_wlan_data = {
-	.irq = OMAP_GPIO_IRQ(VAR_SOM_WLAN_IRQ_GPIO),
-	.wlan_enable_gpio = VAR_SOM_WLAN_PMENA_GPIO,
-	.bt_enable_gpio = VAR_SOM_BT_PMENA_GPIO,
-	.board_ref_clock = WL12XX_REFCLOCK_26, /* 26Mhz */
-};
-
 /* Module pin mux for wlan and bluetooth */
 static struct pinmux_config mmc1_wl12xx_pin_mux[] = {
 	{"gpmc_ad8.mmc1_dat0", OMAP_MUX_MODE2 | AM33XX_PIN_INPUT_PULLUP},
@@ -432,19 +350,101 @@ static struct pinmux_config wl12xx_pin_mux_var_som[] = {
 	{NULL, 0},
 };
 
-#define VAR_SOM_BACKLIGHT_GPIO GPIO_TO_PIN(0, 2)
+/* Enable clkout1 */
+static struct pinmux_config clkout1_pin_mux[] = {
+	{"xdma_event_intr0.clkout1", OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT},
+	{NULL, 0},
+};
+
+/* FT5x06 touchscreen GPIO pins */
+static struct pinmux_config ft5x06_gpio_touchscreen_mux[] = {
+    {"gpmc_csn3.gpio2_0", OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT},
+    {"gpmc_a1.gpio1_17", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT},
+    {NULL, 0}
+};
+
+static struct gpio som_rev_gpios[] __initdata = {
+	{VAR_SOM_REV_BIT0, GPIOF_IN,	"som_rev_bit_0"},
+	{VAR_SOM_REV_BIT1, GPIOF_IN,	"som_rev_bit_1"},
+	{VAR_SOM_REV_BIT2, GPIOF_IN,	"som_rev_bit_2"},
+
+};
+
+static struct ft5x06_platform_data  board_ft5x06_platform_data =
+{
+    .irq_pin = BOARD_FT5X06_IRQ_GPIO,
+    .reset_pin = BOARD_FT5X06_RESET_GPIO
+};
+
+/*
+* @pin_mux - single module pin-mux structure which defines pin-mux
+*			details for all its pins.
+*/
+static void setup_pin_mux(struct pinmux_config *pin_mux)
+{
+	int i;
+
+	for (i = 0; pin_mux->string_name != NULL; pin_mux++)
+		omap_mux_init_signal(pin_mux->string_name, pin_mux->val);
+}
+
+int get_var_am33_som_rev(void)
+{
+	static int som_rev = -1;
+	int subversion;
+
+	if (som_rev == (-1)) {
+		int status;
+
+		setup_pin_mux(am33_var_som_rev_pin_mux);
+
+		status = gpio_request_array(som_rev_gpios,
+				ARRAY_SIZE(som_rev_gpios));
+		if (status) {
+			pr_err("Error requesting som rev gpio: %d\n", status);
+		}
+		subversion = gpio_get_value(VAR_SOM_REV_BIT2) ? 0 : 1;
+		som_rev = (gpio_get_value(VAR_SOM_REV_BIT0) |
+				(gpio_get_value(VAR_SOM_REV_BIT1) << 1)) +
+			subversion;
+
+		gpio_free_array(som_rev_gpios,
+				ARRAY_SIZE(som_rev_gpios));
+
+	}
+
+	return som_rev;
+}
+
+const char *get_var_am33_som_rev_str(void)
+{
+	static char som_rev_str[32];
+
+	sprintf(som_rev_str, "1.%d", get_var_am33_som_rev());
+
+	return som_rev_str;
+}
+
+static struct wl12xx_platform_data var_som_am33_wlan_data = {
+	.irq = OMAP_GPIO_IRQ(VAR_SOM_WLAN_IRQ_GPIO),
+	.wlan_enable_gpio = VAR_SOM_WLAN_PMENA_GPIO,
+	.bt_enable_gpio = VAR_SOM_BT_PMENA_GPIO,
+	.board_ref_clock = WL12XX_REFCLOCK_26, /* 26Mhz */
+};
+
+
 static int __init backlight_init(void)
 {
 	int status;
 
 	setup_pin_mux(gpio_backlight_pin_mux);
 
-	status = gpio_request(VAR_SOM_BACKLIGHT_GPIO, "backlight\n");
+	status = gpio_request(BOARD_LCD_BACKLIGHT_GPIO, "backlight\n");
 	if (status < 0)
 		pr_err("Failed to request gpio for backlight");
 
-	gpio_direction_output(VAR_SOM_BACKLIGHT_GPIO, 1);
-	gpio_export(VAR_SOM_BACKLIGHT_GPIO, 0);
+	gpio_direction_output(BOARD_LCD_BACKLIGHT_GPIO, 1);
+	gpio_export(BOARD_LCD_BACKLIGHT_GPIO, 0);
 
 	return 0;
 }
@@ -471,10 +471,7 @@ static void lcdc_init(void)
 {
 	struct da8xx_lcdc_platform_data* plcdc_data;
 
-	if (var_lcd_index == VAR_LCD_CTW6120)
-		plcdc_data = &VAR_LCD_CTW_pdata;
-	else
-		plcdc_data = &VAR_LCD_pdata;
+	plcdc_data = &newhaven_lcd_pdata;
 
 	setup_pin_mux(lcdc_pin_mux);
 
@@ -500,7 +497,6 @@ static void uart_init(void)
 	omap_serial_init();
 }
 
-#define VAR_SOM_GMII1_RST_GPIO   GPIO_TO_PIN(2, 19)
 
 static void rmii1_init(void)
 {
@@ -1029,15 +1025,12 @@ static struct i2c_board_info __initdata var_som_i2c1_boardinfo[] = {
 	{
 		I2C_BOARD_INFO("tlv320aic3x", 0x1b),
 	},
-	{
-#ifdef CONFIG_ANDROID
-		I2C_BOARD_INFO("ctw6120-mt", 0x38),
-#else
-		I2C_BOARD_INFO("ctw6120", 0x38),
-#endif
-		.flags = I2C_CLIENT_WAKE,
-		.irq = OMAP_GPIO_IRQ(VAR_SOM_TSC_CTW_IRQ_GPIO),
-	},
+    {
+        I2C_BOARD_INFO("ft5x06", 0x38),
+        .platform_data = &board_ft5x06_platform_data,
+        .flags = I2C_CLIENT_WAKE,
+        .irq = OMAP_GPIO_IRQ(BOARD_FT5X06_IRQ_GPIO)
+    }
 };
 
 static void i2c1_init(void)
@@ -1048,12 +1041,6 @@ static void i2c1_init(void)
 			ARRAY_SIZE(var_som_i2c1_boardinfo));
 	return;
 }
-
-/* Enable clkout1 */
-static struct pinmux_config clkout1_pin_mux[] = {
-	{"xdma_event_intr0.clkout1", OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT},
-	{NULL, 0},
-};
 
 static void __init clkout1_enable(void)
 {
@@ -1104,6 +1091,11 @@ static void sgx_init(void)
 }
 #endif
 
+static void touchscreen_init(void)
+{
+    setup_pin_mux(ft5x06_gpio_touchscreen_mux);
+}
+
 static void __init var_am335x_som_init(void)
 {
 	am33xx_cpuidle_init();
@@ -1127,6 +1119,7 @@ static void __init var_am335x_som_init(void)
 	mcasp0_init();
 	rmii1_init();
 	ethernet_init();
+    touchscreen_init();
 	i2c1_init();
 	sgx_init();
 	usb_musb_init(&musb_board_data);

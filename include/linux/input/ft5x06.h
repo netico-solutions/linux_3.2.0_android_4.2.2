@@ -12,13 +12,9 @@
 struct ft5x06_platform_data {
 	int irq_pin;
 	int reset_pin;
-
-	/* startup defaults for operational parameters */
-	bool use_parameters;
-	u8 gain;
-	u8 threshold;
-	u8 offset;
-	u8 report_rate;
+        
+        int num_x;
+        int num_y;
 };
 
 #endif /* _FT5X06_H */
