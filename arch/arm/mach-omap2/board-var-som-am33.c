@@ -92,7 +92,7 @@ struct pinmux_config {
 #define VAR_SOM_BT_PMENA_GPIO           GPIO_TO_PIN(3, 9)
 
 /* Board specific gpios */
-#define BOARD_LCD_BACKLIGHT_GPIO        GPIO_TO_PIN(0, 2)
+#define BOARD_LCD_BACKLIGHT_GPIO        GPIO_TO_PIN(1, 21)
 #define BOARD_FT5X06_IRQ_GPIO           GPIO_TO_PIN(1, 17)
 #define BOARD_FT5X06_RESET_GPIO         GPIO_TO_PIN(2, 0)
 
@@ -103,8 +103,8 @@ static char am335x_mac_addr[NO_OF_MAC_ADDR][ETH_ALEN];
 static const struct display_panel disp_panel = {
 	WVGA,
 	32,
-	32,
-	COLOR_ACTIVE,
+	16,
+	COLOR_PASSIVE,
 };
 
 static struct lcd_ctrl_config lcd_cfg = {
@@ -115,19 +115,19 @@ static struct lcd_ctrl_config lcd_cfg = {
 	.bpp			= 32,
 	.fdd			= 0x80,
 	.tft_alt_mode		= 0,
-	.stn_565_mode		= 0,
+	.stn_565_mode		= 1,
 	.mono_8bit_mode		= 0,
-	.invert_line_clock	= 1,
-	.invert_frm_clock	= 1,
-	.sync_edge		= 0,
+	.invert_line_clock	= 0,
+	.invert_frm_clock	= 0,
+	.sync_edge		= 1,
 	.sync_ctrl		= 1,
 	.raster_order		= 0,
 };
 
 struct da8xx_lcdc_platform_data newhaven_lcd_pdata = {
-	.manu_name		= "Variscite",
+	.manu_name		= "Newhaven",
 	.controller_data	= &lcd_cfg,
-	.type			= "VAR-WVGA",
+	.type			= "NHD-5.0-800480TF-ATXL",
 };
 
 static void sgx_init(void);
@@ -212,8 +212,8 @@ static struct pinmux_config uart3_pin_mux[] = {
 	{NULL, 0},
 };
 
-static struct pinmux_config gpio_backlight_pin_mux[] = {
-	{"spi0_sclk.gpio0_2", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
+static struct pinmux_config lcd_backlight_pin_mux[] = {
+    {"gpmc_a5.gpio1_21", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
 	{NULL, 0},
 };
 
@@ -437,13 +437,14 @@ static int __init backlight_init(void)
 {
 	int status;
 
-	setup_pin_mux(gpio_backlight_pin_mux);
+	setup_pin_mux(lcd_backlight_pin_mux);
 
-	status = gpio_request(BOARD_LCD_BACKLIGHT_GPIO, "backlight\n");
-	if (status < 0)
+	status = gpio_request_one(BOARD_LCD_BACKLIGHT_GPIO,
+		GPIOF_OUT_INIT_HIGH, "backlight");
+	
+    if (status < 0)
 		pr_err("Failed to request gpio for backlight");
 
-	gpio_direction_output(BOARD_LCD_BACKLIGHT_GPIO, 1);
 	gpio_export(BOARD_LCD_BACKLIGHT_GPIO, 0);
 
 	return 0;
@@ -1026,7 +1027,7 @@ static struct i2c_board_info __initdata var_som_i2c1_boardinfo[] = {
 		I2C_BOARD_INFO("tlv320aic3x", 0x1b),
 	},
     {
-        I2C_BOARD_INFO("ft5x06", 0x38),
+        I2C_BOARD_INFO("nh_ft5x06", 0x38),
         .platform_data = &board_ft5x06_platform_data,
         .flags = I2C_CLIENT_WAKE,
         .irq = OMAP_GPIO_IRQ(BOARD_FT5X06_IRQ_GPIO)

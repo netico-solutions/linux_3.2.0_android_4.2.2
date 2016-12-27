@@ -401,6 +401,19 @@ static struct da8xx_panel known_lcd_panels[] = {
 		.pxl_clk = 33000000,
 		.invert_pxl_clk = 0,
 	},
+    [12] = {
+		.name = "NHD-5.0-800480TF-ATXL",
+		.width = 800,
+		.height = 480,
+		.hfp = 88,
+		.hbp = 88,
+		.hsw = 48,
+		.vfp = 32,
+		.vbp = 32,
+		.vsw = 3,
+		.pxl_clk = 45000000,
+		.invert_pxl_clk = 1,
+	},
 };
 
 /* Enable the Raster Engine of the LCD Controller */
