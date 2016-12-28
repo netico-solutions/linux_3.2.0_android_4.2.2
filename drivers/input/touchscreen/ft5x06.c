@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Nenad Radulovic, <nenad.radulovic@gmail.com>
+ * Copyright (C) 2016 Nenad Radulovic, <nenad.b.radulovic@gmail.com>
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -74,10 +74,30 @@
 
 #define FT5X06_NAME_LEN			        16
 
+#define FT5X06_MODE_NORMAL              0
+#define FT5X06_MODE_TEST                4
+#define FT5X06_MODE_SYSTEM              1
+
+#define FT5X06_GESTURE_ZOOM_IN          0x48
+#define FT5X06_GESTURE_ZOOM_OUT         0X49
+#define FT5X06_GESTURE_NONE             0
+
+
+struct chip_attr {
+        u8              id;
+        const char *    name;
+        u8              max_supported_points;
+};
+
+static struct chip_attr known_chips[] = {
+        {0x55, "nh_ft5x06", 5},
+        {0, NULL, 0}
+};
+
 struct ft5x06_data {
 	struct i2c_client *     client;
 	struct input_dev *      input;
-
+        struct chip_attr *      chip_attr;
     /* Needed by input subsystem */
 	char                    name[FT5X06_NAME_LEN];
 };
@@ -140,14 +160,6 @@ ft5x06_register_read(struct ft5x06_data *tsdata, u8 addr, u8 * data)
         return error;
 }
 
-#define FT5X06_MODE_NORMAL              0
-#define FT5X06_MODE_TEST                4
-#define FT5X06_MODE_SYSTEM              1
-
-#define FT5X06_GESTURE_ZOOM_IN          0x48
-#define FT5X06_GESTURE_ZOOM_OUT         0X49
-#define FT5X06_GESTURE_NONE             0
-
 static void
 parse_touch_data(struct ft5x06_data * tsdata, const u8 * rdbuf)
 {
@@ -166,8 +178,6 @@ parse_touch_data(struct ft5x06_data * tsdata, const u8 * rdbuf)
 
                 x_data = (((u32)buf[0] << 8u) | (u32)buf[1]) & 0xfffu; 
                 y_data = (((u32)buf[2] << 8u) | (u32)buf[3]) & 0xfffu; 
-
-                dev_dbg(dev, "t%d: x=%d, y=%d\n", point_idx, x_data, y_data);
 
                 down = type != FT5X06_TOUCH_EVENT_FLAG_UP;
                 input_mt_slot(tsdata->input, point_idx);
@@ -221,20 +231,10 @@ ft5x06_reset(struct ft5x06_data * tsdata, int reset_pin)
 	return 0;
 }
 
-struct chip_id {
-        u8              id;
-        const char *    name;
-};
-
-struct chip_id chip_ids[] = {
-        {0x55, "nh_ft5x06"},
-        {0, NULL}
-};
-
 static int 
-ft5x06_identify(struct ft5x06_data * tsdata, char * model_name)
+ft5x06_identify(struct ft5x06_data * tsdata)
 {
-        struct chip_id * chip_id;
+        struct chip_attr * chip_attr;
         u8 cipher;
         u8 firmid;
 	int error;
@@ -256,16 +256,19 @@ ft5x06_identify(struct ft5x06_data * tsdata, char * model_name)
         dev_dbg(&tsdata->client->dev, "Chip Vendor ID %x, Firmware ID %x\n",
                 cipher, firmid);
 
-        for (chip_id = chip_ids; (chip_id->id != cipher) && chip_id->name; 
-                chip_id++) {
+        for (chip_attr = known_chips; 
+                (chip_attr->id != cipher) && chip_attr->name; 
+                chip_attr++) {
                 ;
         }
 
-        if (chip_id->name == NULL)
+        if (chip_attr->name == NULL)
                 return (-ENODEV);
 
-        snprintf(model_name, FT5X06_NAME_LEN, "%s-%02x.%02x", chip_id->name, 
+        tsdata->chip_attr = chip_attr;
+        snprintf(tsdata->name, FT5X06_NAME_LEN, "%s-%02x.%02x", chip_attr->name, 
                 cipher, firmid);
+        dev_dbg("found %s\n", tsdata->name);
 
 	return 0;
 }
@@ -341,10 +344,10 @@ static int ft5x06_probe(struct i2c_client *client,
 	__set_bit(EV_KEY, input->evbit);
 	__set_bit(EV_ABS, input->evbit);
 	__set_bit(BTN_TOUCH, input->keybit);
-	input_set_abs_params(input, ABS_X, 0, 800, 0, 0);
-	input_set_abs_params(input, ABS_Y, 0, 480, 0, 0);
-	input_set_abs_params(input, ABS_MT_POSITION_X, 0, 800, 0, 0);
-	input_set_abs_params(input, ABS_MT_POSITION_Y, 0, 480, 0, 0);
+	input_set_abs_params(input, ABS_X, 0, pdata->abs_x, 0, 0);
+	input_set_abs_params(input, ABS_Y, 0, pdata->ans_y, 0, 0);
+	input_set_abs_params(input, ABS_MT_POSITION_X, 0, pdata->abs_x, 0, 0);
+	input_set_abs_params(input, ABS_MT_POSITION_Y, 0, pdata->abs_y, 0, 0);
 	error = input_mt_init_slots(input, MAX_SUPPORT_POINTS);
 
 	if (error) {
@@ -367,8 +370,7 @@ static int ft5x06_probe(struct i2c_client *client,
 		goto err_remove_attrs;
 
 	device_init_wakeup(&client->dev, 1);
-	dev_dbg(&client->dev,
-		"Initialized: IRQ pin %d, Reset pin %d.\n",
+	dev_dbg(&client->dev, "Initialized: IRQ pin %d, Reset pin %d.\n",
 		pdata->irq_pin, pdata->reset_pin);
 
 	return 0;
@@ -458,6 +460,6 @@ static void __exit ft5x06_driver_exit(void)
 }
 module_exit(ft5x06_driver_exit);
 
-MODULE_AUTHOR("Nenad Radulovic <nenad.radulovic@gmail.com>");
+MODULE_AUTHOR("Nenad Radulovic <nenad.b.radulovic@gmail.com>");
 MODULE_DESCRIPTION("Newhaven FT5x06 I2C Touchscreen Driver");
 MODULE_LICENSE("GPL");

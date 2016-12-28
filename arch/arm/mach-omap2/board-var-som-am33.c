@@ -373,7 +373,9 @@ static struct gpio som_rev_gpios[] __initdata = {
 static struct ft5x06_platform_data  board_ft5x06_platform_data =
 {
     .irq_pin = BOARD_FT5X06_IRQ_GPIO,
-    .reset_pin = BOARD_FT5X06_RESET_GPIO
+    .reset_pin = BOARD_FT5X06_RESET_GPIO,
+    .abs_x = 800,
+    .abs_y = 480
 };
 
 /*
