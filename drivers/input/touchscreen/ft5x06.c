@@ -164,7 +164,6 @@ static void
 parse_touch_data(struct ft5x06_data * tsdata, const u8 * rdbuf)
 {
         u32     x_data, y_data, point_idx;
-        struct device * dev = &tsdata->client->dev;
 
         for (point_idx = 0; point_idx < MAX_SUPPORT_POINTS; point_idx++) {
                 bool down;
@@ -268,7 +267,7 @@ ft5x06_identify(struct ft5x06_data * tsdata)
         tsdata->chip_attr = chip_attr;
         snprintf(tsdata->name, FT5X06_NAME_LEN, "%s-%02x.%02x", chip_attr->name, 
                 cipher, firmid);
-        dev_dbg("found %s\n", tsdata->name);
+        dev_dbg(&tsdata->client->dev, "found %s\n", tsdata->name);
 
 	return 0;
 }
@@ -330,7 +329,7 @@ static int ft5x06_probe(struct i2c_client *client,
 		dev_err(&client->dev, "failed to reset the chip\n");
 		goto err_free_mem;
     }
-	error = ft5x06_identify(tsdata, tsdata->name);
+	error = ft5x06_identify(tsdata);
 
 	if (error) {
 		dev_err(&client->dev, "touchscreen probe failed\n");
@@ -345,7 +344,7 @@ static int ft5x06_probe(struct i2c_client *client,
 	__set_bit(EV_ABS, input->evbit);
 	__set_bit(BTN_TOUCH, input->keybit);
 	input_set_abs_params(input, ABS_X, 0, pdata->abs_x, 0, 0);
-	input_set_abs_params(input, ABS_Y, 0, pdata->ans_y, 0, 0);
+	input_set_abs_params(input, ABS_Y, 0, pdata->abs_y, 0, 0);
 	input_set_abs_params(input, ABS_MT_POSITION_X, 0, pdata->abs_x, 0, 0);
 	input_set_abs_params(input, ABS_MT_POSITION_Y, 0, pdata->abs_y, 0, 0);
 	error = input_mt_init_slots(input, MAX_SUPPORT_POINTS);
