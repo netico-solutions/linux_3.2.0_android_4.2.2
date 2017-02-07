@@ -442,7 +442,7 @@ static int __init backlight_init(void)
 	setup_pin_mux(lcd_backlight_pin_mux);
 
 	status = gpio_request_one(BOARD_LCD_BACKLIGHT_GPIO,
-		GPIOF_OUT_INIT_HIGH, "backlight");
+		GPIOF_OUT_INIT_LOW, "backlight");
 	
     if (status < 0)
 		pr_err("Failed to request gpio for backlight");
