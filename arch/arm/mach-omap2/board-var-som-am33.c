@@ -97,6 +97,20 @@ struct pinmux_config {
 #define BOARD_FT5X06_RESET_GPIO         GPIO_TO_PIN(2, 0)
 #define BOARD_A9_NOTIFY                 GPIO_TO_PIN(0, 3)
 
+static struct spi_board_info spidevices[] = {
+    {
+        .modalias = "spidev",
+        .chip_select = 1,
+        .max_speed_hz = 1 * 1000 * 1000,
+        .bus_num = 1,
+    },
+    {
+        .modalias = "spidev",
+        .chip_select = 0,
+        .max_speed_hz = 1 * 1000 * 1000,
+        .bus_num = 2,
+    },
+};
 
 
 static char am335x_mac_addr[NO_OF_MAC_ADDR][ETH_ALEN];
@@ -207,13 +221,6 @@ static struct pinmux_config uart0_pin_mux[] = {
 	{NULL, 0},
 };
 
-/* UART3 */
-static struct pinmux_config uart3_pin_mux[] = {
-	{"ecap0_in_pwm0_out.uart3_txd", OMAP_MUX_MODE1 | AM33XX_PULL_ENBL},
-	{"spi0_cs1.uart3_rxd", OMAP_MUX_MODE1 | AM33XX_PIN_INPUT_PULLUP},
-	{NULL, 0},
-};
-
 /* LCD Backlight GPIO */
 static struct pinmux_config lcd_backlight_pin_mux[] = {
     {"gpmc_a5.gpio1_21", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
@@ -224,7 +231,7 @@ static struct pinmux_config lcd_backlight_pin_mux[] = {
 static struct pinmux_config cdi_bus_pin_mux[] = {
     {"spi0_d0.gpio0_3", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
     {"mcasp0_ahclkr.spi1_cs0", OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT},
-    {"uart0_ctsn.spi1_d0", OMAP_MUX_MODE4 | AM33XX_PIN_OUTPUT},
+    {"uart0_ctsn.spi1_d0", OMAP_MUX_MODE4 | AM33XX_PIN_INPUT_PULLDOWN},
     {"uart0_rtsn.spi1_d1", OMAP_MUX_MODE4 | AM33XX_PIN_INPUT_PULLDOWN},
     {"ecap0_in_pwm0_out.spi1_sclk", OMAP_MUX_MODE4 | AM33XX_PIN_OUTPUT},
     {NULL, 0}
@@ -508,7 +515,6 @@ static void lcdc_init(void)
 static void uart_init(void)
 {
 	setup_pin_mux(uart0_pin_mux);
-	setup_pin_mux(uart3_pin_mux);
 
 	omap_serial_init();
 }
@@ -1141,6 +1147,7 @@ static void __init var_am335x_som_init(void)
 	usb_musb_init(&musb_board_data);
 
     setup_pin_mux(cdi_bus_pin_mux);
+    spi_register_board_info(spidevices, ARRAY_SIZE(spidevices));
 
 	/* Create an alias for icss clock */
 	if (clk_add_alias("pruss", NULL, "pruss_uart_gclk", NULL))

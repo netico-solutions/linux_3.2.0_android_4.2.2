@@ -21,6 +21,8 @@
  *
  */
 
+#define DEBUG
+
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
@@ -322,6 +324,8 @@ omap2_mcspi_txrx_dma(struct spi_device *spi, struct spi_transfer *xfer)
 	rx = xfer->rx_buf;
 	tx = xfer->tx_buf;
 
+    printk(KERN_INFO "spi:%d,%d,%x,%p,%p", xfer->len, cs->word_len, l, tx, rx);
+
 	if (word_len <= 8) {
 		data_type = OMAP_DMA_DATA_TYPE_S8;
 		element_count = count;
@@ -490,7 +494,7 @@ omap2_mcspi_txrx_pio(struct spi_device *spi, struct spi_transfer *xfer)
 					dev_err(&spi->dev, "TXS timed out\n");
 					goto out;
 				}
-				dev_vdbg(&spi->dev, "write-%d %02x\n",
+				dev_dbg(&spi->dev, "write-%d %02x\n",
 						word_len, *tx);
 				__raw_writel(*tx++, tx_reg);
 			}
@@ -505,7 +509,7 @@ omap2_mcspi_txrx_pio(struct spi_device *spi, struct spi_transfer *xfer)
 				    (l & OMAP2_MCSPI_CHCONF_TURBO)) {
 					omap2_mcspi_set_enable(spi, 0);
 					*rx++ = __raw_readl(rx_reg);
-					dev_vdbg(&spi->dev, "read-%d %02x\n",
+					dev_dbg(&spi->dev, "read-%d %02x\n",
 						    word_len, *(rx - 1));
 					if (mcspi_wait_for_reg_bit(chstat_reg,
 						OMAP2_MCSPI_CHSTAT_RXS) < 0) {
@@ -519,7 +523,7 @@ omap2_mcspi_txrx_pio(struct spi_device *spi, struct spi_transfer *xfer)
 				}
 
 				*rx++ = __raw_readl(rx_reg);
-				dev_vdbg(&spi->dev, "read-%d %02x\n",
+				dev_dbg(&spi->dev, "read-%d %02x\n",
 						word_len, *(rx - 1));
 			}
 		} while (c);
@@ -537,7 +541,7 @@ omap2_mcspi_txrx_pio(struct spi_device *spi, struct spi_transfer *xfer)
 					dev_err(&spi->dev, "TXS timed out\n");
 					goto out;
 				}
-				dev_vdbg(&spi->dev, "write-%d %04x\n",
+				dev_dbg(&spi->dev, "write-%d %04x\n",
 						word_len, *tx);
 				__raw_writel(*tx++, tx_reg);
 			}
@@ -552,7 +556,7 @@ omap2_mcspi_txrx_pio(struct spi_device *spi, struct spi_transfer *xfer)
 				    (l & OMAP2_MCSPI_CHCONF_TURBO)) {
 					omap2_mcspi_set_enable(spi, 0);
 					*rx++ = __raw_readl(rx_reg);
-					dev_vdbg(&spi->dev, "read-%d %04x\n",
+					dev_dbg(&spi->dev, "read-%d %04x\n",
 						    word_len, *(rx - 1));
 					if (mcspi_wait_for_reg_bit(chstat_reg,
 						OMAP2_MCSPI_CHSTAT_RXS) < 0) {
@@ -566,7 +570,7 @@ omap2_mcspi_txrx_pio(struct spi_device *spi, struct spi_transfer *xfer)
 				}
 
 				*rx++ = __raw_readl(rx_reg);
-				dev_vdbg(&spi->dev, "read-%d %04x\n",
+				dev_dbg(&spi->dev, "read-%d %04x\n",
 						word_len, *(rx - 1));
 			}
 		} while (c >= 2);
@@ -584,7 +588,7 @@ omap2_mcspi_txrx_pio(struct spi_device *spi, struct spi_transfer *xfer)
 					dev_err(&spi->dev, "TXS timed out\n");
 					goto out;
 				}
-				dev_vdbg(&spi->dev, "write-%d %08x\n",
+				dev_dbg(&spi->dev, "write-%d %08x\n",
 						word_len, *tx);
 				__raw_writel(*tx++, tx_reg);
 			}
@@ -599,7 +603,7 @@ omap2_mcspi_txrx_pio(struct spi_device *spi, struct spi_transfer *xfer)
 				    (l & OMAP2_MCSPI_CHCONF_TURBO)) {
 					omap2_mcspi_set_enable(spi, 0);
 					*rx++ = __raw_readl(rx_reg);
-					dev_vdbg(&spi->dev, "read-%d %08x\n",
+					dev_dbg(&spi->dev, "read-%d %08x\n",
 						    word_len, *(rx - 1));
 					if (mcspi_wait_for_reg_bit(chstat_reg,
 						OMAP2_MCSPI_CHSTAT_RXS) < 0) {
@@ -613,7 +617,7 @@ omap2_mcspi_txrx_pio(struct spi_device *spi, struct spi_transfer *xfer)
 				}
 
 				*rx++ = __raw_readl(rx_reg);
-				dev_vdbg(&spi->dev, "read-%d %08x\n",
+				dev_dbg(&spi->dev, "read-%d %08x\n",
 						word_len, *(rx - 1));
 			}
 		} while (c >= 4);
@@ -680,8 +684,19 @@ static int omap2_mcspi_setup_transfer(struct spi_device *spi,
 	/* standard 4-wire master mode:  SCK, MOSI/out, MISO/in, nCS
 	 * REVISIT: this controller could support SPI_3WIRE mode.
 	 */
+#if 0
+    /* Driver reset state
+     */
 	l &= ~(OMAP2_MCSPI_CHCONF_IS|OMAP2_MCSPI_CHCONF_DPE1);
 	l |= OMAP2_MCSPI_CHCONF_DPE0;
+#endif
+#if 1
+    /* Device reset state
+     */ 
+    l |= OMAP2_MCSPI_CHCONF_IS;
+    l |= OMAP2_MCSPI_CHCONF_DPE1;
+    l &= ~OMAP2_MCSPI_CHCONF_DPE0;
+#endif
 
 	/* wordlength */
 	l &= ~OMAP2_MCSPI_CHCONF_WL_MASK;
@@ -708,6 +723,8 @@ static int omap2_mcspi_setup_transfer(struct spi_device *spi,
 		l &= ~OMAP2_MCSPI_CHCONF_PHA;
 
 	mcspi_write_chconf0(spi, l);
+
+	dev_dbg(&spi->dev, "chconf: %x", mcspi_read_cs_reg(spi, OMAP2_MCSPI_CHCONF0));
 
 	dev_dbg(&spi->dev, "setup: speed %d, sample %s edge, clk %s\n",
 			OMAP2_MCSPI_MAX_FREQ >> div,
