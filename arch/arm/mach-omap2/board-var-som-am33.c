@@ -223,10 +223,10 @@ static struct pinmux_config lcd_backlight_pin_mux[] = {
 /* CDI BUS */
 static struct pinmux_config cdi_bus_pin_mux[] = {
     {"spi0_d0.gpio0_3", OMAP_MUX_MODE7 | AM33XX_PIN_INPUT_PULLUP},
-    {"mcasp0_ahclkr.spi1_cs0", OMAP_MUX_MODE3 | AM33XX_PIN_OUTPUT},
-    {"uart0_ctsn.spi1_d0", OMAP_MUX_MODE4 | AM33XX_PIN_OUTPUT},
-    {"uart0_rtsn.spi1_d1", OMAP_MUX_MODE4 | AM33XX_PIN_INPUT_PULLDOWN},
-    {"ecap0_in_pwm0_out.spi1_sclk", OMAP_MUX_MODE4 | AM33XX_PIN_OUTPUT},
+    {"mcasp0_ahclkr.spi1_cs0", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT},
+    {"uart0_ctsn.spi1_d0", OMAP_MUX_MODE4 | AM33XX_PIN_INPUT},
+    {"uart0_rtsn.spi1_d1", OMAP_MUX_MODE4 | AM33XX_PIN_INPUT},
+    {"ecap0_in_pwm0_out.spi1_sclk", OMAP_MUX_MODE4 | AM33XX_PIN_INPUT},
     {NULL, 0}
 };
 
