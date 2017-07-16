@@ -214,6 +214,13 @@ static struct pinmux_config uart3_pin_mux[] = {
 	{NULL, 0},
 };
 
+/* UART4 */
+static struct pinmux_config uart4_pin_mux[] = {
+	{"mii1_txd3.uart4_rxd", OMAP_MUX_MODE3 | AM33XX_PIN_INPUT_PULLUP},
+	{"mii1_txd2.uart4_txd", OMAP_MUX_MODE3 | AM33XX_PULL_ENBL},
+	{NULL, 0},
+};
+
 /* LCD Backlight GPIO */
 static struct pinmux_config lcd_backlight_pin_mux[] = {
     {"gpmc_a5.gpio1_21", OMAP_MUX_MODE7 | AM33XX_PIN_OUTPUT},
@@ -509,6 +516,7 @@ static void uart_init(void)
 {
 	setup_pin_mux(uart0_pin_mux);
 	setup_pin_mux(uart3_pin_mux);
+	setup_pin_mux(uart4_pin_mux);
 
 	omap_serial_init();
 }
